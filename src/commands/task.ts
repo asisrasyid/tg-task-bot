@@ -7,14 +7,20 @@ export const sessions = new Map<number, ConversationState>();
 
 export async function handleTaskCommand(ctx: Context) {
   const userId = ctx.from!.id;
-  const boards = await sm.getBoards();
-  if (!boards.length) {
-    await ctx.reply('Tidak ada board tersedia di SheetMaster.');
-    return;
+  await ctx.reply('⏳ Mengambil daftar board...');
+  try {
+    const boards = await sm.getBoards();
+    if (!boards.length) {
+      await ctx.reply('Tidak ada board tersedia di SheetMaster.');
+      return;
+    }
+    sessions.set(userId, { step: 'await_board' });
+    const { text, keyboard } = boardListCard(boards);
+    await ctx.reply(text, { parse_mode: 'Markdown', ...keyboard });
+  } catch (err: any) {
+    console.error('[/task] getBoards error:', err?.message ?? err);
+    await ctx.reply('❌ Gagal terhubung ke SheetMaster. Coba lagi.');
   }
-  sessions.set(userId, { step: 'await_board' });
-  const { text, keyboard } = boardListCard(boards);
-  await ctx.reply(text, { parse_mode: 'Markdown', ...keyboard });
 }
 
 export async function handleBoardCallback(ctx: Context, boardId: string, boardName: string) {
